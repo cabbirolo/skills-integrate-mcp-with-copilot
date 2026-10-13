@@ -16,12 +16,61 @@ body {
 }
 
 header {
+  position: relative;
   text-align: center;
-  padding: 20px 0;
+  padding: 26px 110px 20px;
   margin-bottom: 30px;
   background-color: #1a237e;
   color: white;
   border-radius: 5px;
+}
+
+.teacher-controls {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 2;
+}
+
+.teacher-session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.login-form {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  width: min(280px, calc(100vw - 40px));
+  padding: 16px;
+  color: #333;
+  text-align: left;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.login-form label {
+  display: block;
+  margin: 8px 0 4px;
+  font-weight: bold;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+#auth-message {
+  margin: -16px auto 20px;
+  padding: 10px;
+  text-align: center;
 }
 
 header h1 {
@@ -190,6 +239,31 @@ button:hover {
 
 .hidden {
   display: none;
+}
+
+@media (max-width: 600px) {
+  header {
+    padding: 20px 12px;
+  }
+
+  .teacher-controls {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  .login-form {
+    position: static;
+    margin-top: 12px;
+  }
+
+  .teacher-session {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
 }
 
 footer {

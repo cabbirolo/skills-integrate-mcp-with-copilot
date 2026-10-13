@@ -3,6 +3,86 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const authMessage = document.getElementById("auth-message");
+  const loginToggle = document.getElementById("login-toggle");
+  const loginForm = document.getElementById("login-form");
+  const logoutButton = document.getElementById("logout-button");
+  const teacherSession = document.getElementById("teacher-session");
+  const teacherName = document.getElementById("teacher-name");
+  const signupContainer = document.getElementById("signup-container");
+  let isTeacher = false;
+
+  function showAuthMessage(text, type) {
+    authMessage.textContent = text;
+    authMessage.className = type;
+  }
+
+  function setTeacherState(authenticated, username = "") {
+    isTeacher = authenticated;
+    signupContainer.classList.toggle("hidden", !authenticated);
+    loginToggle.classList.toggle("hidden", authenticated);
+    if (authenticated) {
+      loginForm.classList.add("hidden");
+    }
+    teacherSession.classList.toggle("hidden", !authenticated);
+    teacherName.textContent = authenticated ? `Signed in as ${username}` : "";
+  }
+
+  async function fetchTeacherSession() {
+    try {
+      const response = await fetch("/auth/session");
+      const session = await response.json();
+      setTeacherState(session.authenticated, session.username || "");
+    } catch (error) {
+      setTeacherState(false);
+      console.error("Error checking teacher session:", error);
+    }
+  }
+
+  loginToggle.addEventListener("click", () => {
+    loginForm.classList.toggle("hidden");
+    if (!loginForm.classList.contains("hidden")) {
+      document.getElementById("teacher-username").focus();
+    }
+  });
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const username = document.getElementById("teacher-username").value;
+    const password = document.getElementById("teacher-password").value;
+
+    try {
+      const response = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        showAuthMessage(result.detail || "Sign in failed", "error");
+        return;
+      }
+
+      loginForm.reset();
+      authMessage.className = "hidden";
+      setTeacherState(true, result.username);
+      await fetchActivities();
+    } catch (error) {
+      showAuthMessage("Failed to sign in. Please try again.", "error");
+      console.error("Error signing in:", error);
+    }
+  });
+
+  logoutButton.addEventListener("click", async () => {
+    try {
+      await fetch("/auth/logout", { method: "DELETE" });
+      setTeacherState(false);
+      await fetchActivities();
+    } catch (error) {
+      showAuthMessage("Failed to sign out. Please try again.", "error");
+      console.error("Error signing out:", error);
+    }
+  });
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -12,6 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      activitySelect.replaceChildren(new Option("-- Select an activity --", ""));
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -21,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const spotsLeft =
           details.max_participants - details.participants.length;
 
-        // Create participants HTML with delete icons instead of bullet points
+        // Show roster controls only in a teacher session.
         const participantsHTML =
           details.participants.length > 0
             ? `<div class="participants-section">
@@ -30,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${details.participants
                   .map(
                     (email) =>
-                      `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}">❌</button></li>`
+                      `<li><span class="participant-email">${email}</span>${isTeacher ? `<button class="delete-btn" data-activity="${name}" data-email="${email}" aria-label="Unregister ${email}">Remove</button>` : ""}</li>`
                   )
                   .join("")}
               </ul>
@@ -69,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Handle unregister functionality
   async function handleUnregister(event) {
-    const button = event.target;
+    const button = event.target.closest("button");
     const activity = button.getAttribute("data-activity");
     const email = button.getAttribute("data-email");
 
@@ -155,6 +236,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Initialize app
-  fetchActivities();
+  // Initialize the session before rendering teacher-only controls.
+  fetchTeacherSession().then(fetchActivities);
 });
